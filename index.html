@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Lean 65 Ultimate</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  font-family: -apple-system;
+  background: #0b0f19;
+  color: white;
+  padding: 20px;
+}
+h1 { color: #22c55e; }
+
+.card {
+  background: #111827;
+  padding: 15px;
+  border-radius: 15px;
+  margin-bottom: 15px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: none;
+}
+
+button {
+  margin-top: 10px;
+  padding: 10px;
+  width: 100%;
+  background: #22c55e;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+.progress {
+  background: #1f2937;
+  border-radius: 10px;
+  height: 20px;
+}
+
+.progress-bar {
+  height: 20px;
+  background: #22c55e;
+  border-radius: 10px;
+  width: 0%;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Lean 65 Ultimate</h1>
+
+<div class="card">
+<h3>Dashboard</h3>
+<p>Weight: <span id="weight">--</span> kg</p>
+<p>Waist: <span id="waist">--</span> cm</p>
+<p>Status: <span id="status">--</span></p>
+
+<div class="progress">
+<div id="bar" class="progress-bar"></div>
+</div>
+</div>
+
+<div class="card">
+<h3>Update</h3>
+<input type="number" id="inputWeight" placeholder="Weight">
+<input type="number" id="inputWaist" placeholder="Waist">
+<button onclick="saveData()">Save</button>
+</div>
+
+<div class="card">
+<h3>Progress Graph</h3>
+<canvas id="chart"></canvas>
+</div>
+
+<div class="card">
+<h3>Diet Rules</h3>
+<ul>
+<li>Breakfast: Eggs + Tea</li>
+<li>Lunch: Rice + Protein</li>
+<li>Dinner: No carbs</li>
+<li>No sugar</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>Backup</h3>
+<button onclick="exportData()">Export Data</button>
+<input type="file" onchange="importData(event)">
+</div>
+
+<script>
+let startWeight = 83;
+let goal = 65;
+
+let chart;
+
+function saveData() {
+  let w = document.getElementById("inputWeight").value;
+  let waist = document.getElementById("inputWaist").value;
+
+  let history = JSON.parse(localStorage.getItem("history") || "[]");
+  history.push({w, waist, date: new Date().toLocaleDateString()});
+  localStorage.setItem("history", JSON.stringify(history));
+
+  loadData();
+}
+
+function loadData() {
+  let history = JSON.parse(localStorage.getItem("history") || "[]");
+  if (history.length === 0) return;
+
+  let latest = history[history.length - 1];
+
+  document.getElementById("weight").innerText = latest.w;
+  document.getElementById("waist").innerText = latest.waist;
+
+  if (latest.w <= goal) {
+    document.getElementById("status").innerText = "Goal Achieved 🎉";
+  } else if (latest.w <= startWeight - 2) {
+    document.getElementById("status").innerText = "On Track ✅";
+  } else {
+    document.getElementById("status").innerText = "Behind ⚠️";
+  }
+
+  let progress = ((startWeight - latest.w) / (startWeight - goal)) * 100;
+  document.getElementById("bar").style.width = progress + "%";
+
+  updateChart(history);
+}
+
+function updateChart(history) {
+  let labels = history.map(h => h.date);
+  let weights = history.map(h => h.w);
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("chart"), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Weight',
+        data: weights,
+        borderWidth: 2
+      }]
+    }
+  });
+}
+
+function exportData() {
+  let data = localStorage.getItem("history");
+  let blob = new Blob([data], {type: "application/json"});
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "lean65_backup.json";
+  a.click();
+}
+
+function importData(event) {
+  let file = event.target.files[0];
+  let reader = new FileReader();
+  reader.onload = function() {
+    localStorage.setItem("history", reader.result);
+    loadData();
+  };
+  reader.readAsText(file);
+}
+
+loadData();
+</script>
+
+</body>
+</html>
