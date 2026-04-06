@@ -21,24 +21,6 @@ h1 { color: #22c55e; }
   margin-bottom: 15px;
 }
 
-input {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border-radius: 10px;
-  border: none;
-}
-
-button {
-  margin-top: 10px;
-  padding: 10px;
-  width: 100%;
-  background: #22c55e;
-  border: none;
-  border-radius: 10px;
-  font-weight: bold;
-}
-
 .progress {
   background: #1f2937;
   border-radius: 10px;
@@ -56,12 +38,17 @@ button {
 
 <body>
 
-<h1>Lean 65 Ultimate</h1>
+<h1>Lean 65</h1>
+
+<div class="card">
+<h3>Today’s Plan</h3>
+<p id="day"></p>
+<ul id="mealPlan"></ul>
+</div>
 
 <div class="card">
 <h3>Dashboard</h3>
 <p>Weight: <span id="weight">--</span> kg</p>
-<p>Waist: <span id="waist">--</span> cm</p>
 <p>Status: <span id="status">--</span></p>
 
 <div class="progress">
@@ -70,111 +57,63 @@ button {
 </div>
 
 <div class="card">
-<h3>Update</h3>
+<h3>Update Weight</h3>
 <input type="number" id="inputWeight" placeholder="Weight">
-<input type="number" id="inputWaist" placeholder="Waist">
-<button onclick="saveData()">Save</button>
-</div>
-
-<div class="card">
-<h3>Progress Graph</h3>
-<canvas id="chart"></canvas>
-</div>
-
-<div class="card">
-<h3>Diet Rules</h3>
-<ul>
-<li>Breakfast: Eggs + Tea</li>
-<li>Lunch: Rice + Protein</li>
-<li>Dinner: No carbs</li>
-<li>No sugar</li>
-</ul>
-</div>
-
-<div class="card">
-<h3>Backup</h3>
-<button onclick="exportData()">Export Data</button>
-<input type="file" onchange="importData(event)">
+<button onclick="saveWeight()">Save</button>
 </div>
 
 <script>
 let startWeight = 83;
 let goal = 65;
 
-let chart;
+let weeklyPlan = {
+  Monday: ["🥚 Breakfast: Eggs + almonds","🍎 1 PM: Apple","🍛 Lunch: Fish + rice + dal","☕ Snack: Eggs","🍗 Dinner: Fish + veg"],
+  Tuesday: ["🍳 Breakfast: Omelette","🥗 1 PM: Salad","🍛 Lunch: Chicken + rice","☕ Snack: Chana","🍗 Dinner: Egg + veg"],
+  Wednesday: ["🧀 Breakfast: Paneer","🍈 1 PM: Guava","🍛 Lunch: Fish + rice","☕ Snack: Peanuts","🍗 Dinner: Chicken + veg"],
+  Thursday: ["🥣 Breakfast: Curd + nuts","🍉 1 PM: Papaya","🍛 Lunch: Fish + rice","☕ Snack: Eggs","🍗 Dinner: Paneer + veg"],
+  Friday: ["🥚 Breakfast: Eggs","🍊 1 PM: Orange","🍛 Lunch: Chicken + rice","☕ Snack: Sprouts","🍗 Dinner: Fish + veg"],
+  Saturday: ["🍳 Breakfast: Omelette","🥗 1 PM: Salad","🍛 Lunch: Mutton + rice","☕ Snack: Egg","🍗 Dinner: Egg + veg"],
+  Sunday: ["🥣 Breakfast: Curd + nuts","🍎 1 PM: Fruit","🍛 Lunch: Fish + rice","☕ Snack: Chana","🍗 Dinner: Chicken + veg"]
+};
 
-function saveData() {
+function loadMeals() {
+  let today = new Date().toLocaleString('en-US', { weekday: 'long' });
+  document.getElementById("day").innerText = today;
+
+  let meals = weeklyPlan[today];
+  let list = document.getElementById("mealPlan");
+  list.innerHTML = "";
+
+  meals.forEach(m => {
+    let li = document.createElement("li");
+    li.innerText = m;
+    list.appendChild(li);
+  });
+}
+
+function saveWeight() {
   let w = document.getElementById("inputWeight").value;
-  let waist = document.getElementById("inputWaist").value;
-
-  let history = JSON.parse(localStorage.getItem("history") || "[]");
-  history.push({w, waist, date: new Date().toLocaleDateString()});
-  localStorage.setItem("history", JSON.stringify(history));
-
+  localStorage.setItem("weight", w);
   loadData();
 }
 
 function loadData() {
-  let history = JSON.parse(localStorage.getItem("history") || "[]");
-  if (history.length === 0) return;
+  let w = localStorage.getItem("weight");
+  document.getElementById("weight").innerText = w || "--";
 
-  let latest = history[history.length - 1];
-
-  document.getElementById("weight").innerText = latest.w;
-  document.getElementById("waist").innerText = latest.waist;
-
-  if (latest.w <= goal) {
+  if (w && w <= goal) {
     document.getElementById("status").innerText = "Goal Achieved 🎉";
-  } else if (latest.w <= startWeight - 2) {
-    document.getElementById("status").innerText = "On Track ✅";
-  } else {
-    document.getElementById("status").innerText = "Behind ⚠️";
+  } else if (w) {
+    document.getElementById("status").innerText = "In Progress";
   }
 
-  let progress = ((startWeight - latest.w) / (startWeight - goal)) * 100;
-  document.getElementById("bar").style.width = progress + "%";
-
-  updateChart(history);
+  if (w) {
+    let progress = ((startWeight - w) / (startWeight - goal)) * 100;
+    document.getElementById("bar").style.width = progress + "%";
+  }
 }
 
-function updateChart(history) {
-  let labels = history.map(h => h.date);
-  let weights = history.map(h => h.w);
-
-  if (chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("chart"), {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Weight',
-        data: weights,
-        borderWidth: 2
-      }]
-    }
-  });
-}
-
-function exportData() {
-  let data = localStorage.getItem("history");
-  let blob = new Blob([data], {type: "application/json"});
-  let a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "lean65_backup.json";
-  a.click();
-}
-
-function importData(event) {
-  let file = event.target.files[0];
-  let reader = new FileReader();
-  reader.onload = function() {
-    localStorage.setItem("history", reader.result);
-    loadData();
-  };
-  reader.readAsText(file);
-}
-
+loadMeals();
 loadData();
 </script>
 
