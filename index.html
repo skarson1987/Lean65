@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Lean 65 Ultimate</title>
+<title>Lean 65 Pro</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -10,25 +10,41 @@ body {
   font-family: -apple-system;
   background: #0b0f19;
   color: white;
-  padding: 20px;
+  padding: 16px;
 }
+
 h1 { color: #22c55e; }
 
 .card {
   background: #111827;
-  padding: 15px;
-  border-radius: 15px;
-  margin-bottom: 15px;
+  padding: 16px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+}
+
+input {
+  width: 65%;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+}
+
+button {
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #22c55e;
+  font-weight: bold;
 }
 
 .progress {
   background: #1f2937;
+  height: 12px;
   border-radius: 10px;
-  height: 20px;
 }
 
 .progress-bar {
-  height: 20px;
+  height: 12px;
   background: #22c55e;
   border-radius: 10px;
   width: 0%;
@@ -59,21 +75,28 @@ h1 { color: #22c55e; }
 <div class="card">
 <h3>Update Weight</h3>
 <input type="number" id="inputWeight" placeholder="Weight">
-<button onclick="saveWeight()">Save</button>
+<button onclick="saveData()">Save</button>
+</div>
+
+<!-- ✅ GRAPH ADDED -->
+<div class="card">
+<h3>Progress Graph</h3>
+<canvas id="chart"></canvas>
 </div>
 
 <script>
 let startWeight = 83;
 let goal = 65;
+let chart;
 
 let weeklyPlan = {
-  Monday: ["🥚 Breakfast: Eggs + almonds","🍎 1 PM: Apple","🍛 Lunch: Fish + rice + dal","☕ Snack: Eggs","🍗 Dinner: Fish + veg"],
-  Tuesday: ["🍳 Breakfast: Omelette","🥗 1 PM: Salad","🍛 Lunch: Chicken + rice","☕ Snack: Chana","🍗 Dinner: Egg + veg"],
-  Wednesday: ["🧀 Breakfast: Paneer","🍈 1 PM: Guava","🍛 Lunch: Fish + rice","☕ Snack: Peanuts","🍗 Dinner: Chicken + veg"],
-  Thursday: ["🥣 Breakfast: Curd + nuts","🍉 1 PM: Papaya","🍛 Lunch: Fish + rice","☕ Snack: Eggs","🍗 Dinner: Paneer + veg"],
-  Friday: ["🥚 Breakfast: Eggs","🍊 1 PM: Orange","🍛 Lunch: Chicken + rice","☕ Snack: Sprouts","🍗 Dinner: Fish + veg"],
-  Saturday: ["🍳 Breakfast: Omelette","🥗 1 PM: Salad","🍛 Lunch: Mutton + rice","☕ Snack: Egg","🍗 Dinner: Egg + veg"],
-  Sunday: ["🥣 Breakfast: Curd + nuts","🍎 1 PM: Fruit","🍛 Lunch: Fish + rice","☕ Snack: Chana","🍗 Dinner: Chicken + veg"]
+  Monday: ["🥚 Eggs","🍎 Apple","🍛 Fish + rice","☕ Eggs","🍗 Fish + veg"],
+  Tuesday: ["🍳 Omelette","🥗 Salad","🍛 Chicken + rice","☕ Chana","🍗 Egg + veg"],
+  Wednesday: ["🧀 Paneer","🍈 Guava","🍛 Fish + rice","☕ Peanuts","🍗 Chicken + veg"],
+  Thursday: ["🥣 Curd","🍉 Papaya","🍛 Fish + rice","☕ Eggs","🍗 Paneer + veg"],
+  Friday: ["🥚 Eggs","🍊 Orange","🍛 Chicken + rice","☕ Sprouts","🍗 Fish + veg"],
+  Saturday: ["🍳 Omelette","🥗 Salad","🍛 Mutton + rice","☕ Egg","🍗 Egg + veg"],
+  Sunday: ["🥣 Curd","🍎 Fruit","🍛 Fish + rice","☕ Chana","🍗 Chicken + veg"]
 };
 
 function loadMeals() {
@@ -91,9 +114,14 @@ function loadMeals() {
   });
 }
 
-function saveWeight() {
+function saveData() {
   let w = document.getElementById("inputWeight").value;
+  let history = JSON.parse(localStorage.getItem("history") || "[]");
+
+  history.push(w);
+  localStorage.setItem("history", JSON.stringify(history));
   localStorage.setItem("weight", w);
+
   loadData();
 }
 
@@ -111,6 +139,26 @@ function loadData() {
     let progress = ((startWeight - w) / (startWeight - goal)) * 100;
     document.getElementById("bar").style.width = progress + "%";
   }
+
+  updateChart();
+}
+
+function updateChart() {
+  let history = JSON.parse(localStorage.getItem("history") || "[]");
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("chart"), {
+    type: 'line',
+    data: {
+      labels: history.map((_, i) => "Day " + (i+1)),
+      datasets: [{
+        label: 'Weight',
+        data: history,
+        borderWidth: 2
+      }]
+    }
+  });
 }
 
 loadMeals();
